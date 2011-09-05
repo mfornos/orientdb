@@ -3,3 +3,10 @@
 /.project
 /commands.pyc
 /bin
+/samples-and-tests/orientdb-test/eclipse
+/samples-and-tests/orientdb-test/modules
+/samples-and-tests/orientdb-test/test-result
+/samples-and-tests/orientdb-test/tmp
+/samples-and-tests/orientdb-test/.classpath
+/samples-and-tests/orientdb-test/.project
+/samples-and-tests/orientdb-test/.settings

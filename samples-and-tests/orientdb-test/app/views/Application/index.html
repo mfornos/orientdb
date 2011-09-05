@@ -1,0 +1,28 @@
+#{extends 'main.html' /}
+#{set title:'Home' /}
+<h3>Accounts</h3>
+<ul>
+#{list items:accounts, as:'acc'}
+  <li>${acc.name}</li>
+#{/list}
+</ul>
+<h3>Items</h3>
+<ul>
+	#{list items:items, as:'item'}
+	  <li>#{a @Application.detail(item.identity)}${item.identity}:${item.name}#{/a}</li>
+	#{/list}
+</ul>
+
+<h3>Item named 'my'?</h3>
+#{if result}yes#{/if}#{else}no#{/else}
+
+<h3>New item</h3>
+<div>
+	#{form @Application.save()}
+		<input type="text" name="name" /><span class="help-inline">#{error 'name' /}</span>
+		<input type="text" name="description" />
+		<input type="submit" value="Save" />
+	#{/form}
+</div>
+<h3>Transactions</h3>
+#{a @Application.good()}Good Tx#{/a} and #{a @Application.bad()}Bad Tx#{/a}

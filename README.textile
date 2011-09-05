@@ -5,7 +5,7 @@ OrientDB for Play! Framework
 h3. Features
 
 * Embed server for development
-* Don't breaks hot class-reloading
+* Allows hot class-reloading as usual
 * Injection of database sessions in controllers
 * Annotation-based transaction demarcation
 * play.db.Model support
@@ -35,7 +35,96 @@ bc.. # OrientDB Module
 
 h2. Basic usage
 
-[write here...]
+h3. Object Database
 
+The access to ODatabaseObjectTx is wrapped in Model, so if you don't need direct access simply create an entity that extends play.modules.orientdb.Model
 
-//
+bc.. public class Item extends Model {
+    @SuppressWarnings("unused")
+    @Id
+    private Object id;
+
+    @SuppressWarnings("unused")
+    @Version
+    private Object version;
+
+    @Required
+    public String name;
+
+    public String description;
+}
+
+p. And use that entity on the controller:
+
+bc.. public class MyController extends Controller {
+
+    public static void index() {
+        OObjectIteratorMultiCluster<Item> items = Item.all();
+        render(items);
+    }
+
+    public static void detail(ORecordId id) {
+        Item item = Item.findById(id);
+        notFoundIfNull(item);
+        render(item);
+    }
+
+    @Transactional
+    public static void save(String name, String description) {
+        Item item = new Item();
+        item.name = name;
+        item.description = description;
+        if (!item.validateAndSave()) {
+            flash.error("Please fill the form...!");
+        }
+        index();
+    }
+    
+    public static void search(String query) {
+    	List<Item> result = Item.find("select * from Item where name like ?", "%"+query+"%");
+    	render(result);
+    }
+}
+
+p. Note: to obtain the ORID call the method @entity.getIdentity()@
+
+h3. Document Database
+
+p. Inject the session in the controller
+
+bc.. public class MyController extends Controller {
+
+    @Inject
+    static ODatabaseDocumentTx docdb;
+
+    ...
+
+    @Transactional(db = DBTYPE.DOCUMENT)
+    public static void good() {
+        ODocument doc = new ODocument(docdb, "Account");
+        doc.field("name", "good");
+        doc.save();
+        index();
+    }
+
+}
+
+p. If you have an entity that maps the document you can obtain an object representation, because OrientDB ODatabaseObject is built on top of ODatabaseDocument
+
+bc.. public class MyController extends Controller {
+    @Inject
+    static ODatabaseObjectTx db;
+
+    public static void index() {
+        OObjectIteratorMultiCluster<Account> accounts = db.browseClass(Account.class);
+        render(accounts);
+    }
+
+}
+
+h3. References
+
+* <a href="http://www.orientechnologies.com/orient-db.htm">OrientDB</a>
+* <a href="http://code.google.com/p/orient/wiki/Main?tm=6">OrientDB documentation</a>
+
+p. //
