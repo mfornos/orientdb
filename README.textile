@@ -1,0 +1,42 @@
+h1. OrientDB Module
+
+OrientDB support for Play! Framework
+
+h3. Features
+
+* OrientDB support
+* Embed server for development
+* Don't breaks hot class-reloading
+* Automatic session management
+* Injection of database sessions in controllers
+* Simple annotation based transaction demarcation
+* play.db.Model support
+
+h3. TODO
+
+* bindings and Model.Factory for Fixtures and CRUD
+
+h2. Configuration
+
+These are the default values that you can override in @conf/application.conf@
+
+bc.. # OrientDB Module
+# ~~~~~
+# odb.url=memory:temp
+# odb.user=admin
+# odb.password=admin
+# Path to custom configuration file, in classpath or retalive to play application directory (vfs)
+# odb.config.file=/play/modules/orientdb/db.config
+# Package prefix to scan entities
+# odb.entities.package=models
+# Control open session in view
+# odb.open-in-view=true
+# odb.open-in-view.documentdb=true
+# odb.open-in-view.objectdb=true
+
+h2. Basic usage
+
+[write here...]
+
+
+//

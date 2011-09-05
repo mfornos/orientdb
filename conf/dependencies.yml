@@ -1,0 +1,17 @@
+self: play -> orientdb 0.1
+
+require:
+    - play
+    - com.orientechnologies -> orient-commons 1.0rc5
+    - com.orientechnologies -> orientdb-core 1.0rc5
+    - com.orientechnologies -> orientdb-client 1.0rc5
+    - com.orientechnologies -> orientdb-server 1.0rc5
+    - com.orientechnologies -> orientdb-enterprise 1.0rc5
+    
+repositories:
+    
+    - orient:
+        type:       http
+        artifact:   "http://www.orientechnologies.com/listing/m2/com/orientechnologies/[module]/[revision]/[module]-[revision].[ext]"
+        contains:
+            - com.orientechnologies -> *
