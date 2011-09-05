@@ -1,15 +1,13 @@
 h1. OrientDB Module
 
-OrientDB support for Play! Framework
+OrientDB for Play! Framework
 
 h3. Features
 
-* OrientDB support
 * Embed server for development
 * Don't breaks hot class-reloading
-* Automatic session management
 * Injection of database sessions in controllers
-* Simple annotation based transaction demarcation
+* Annotation-based transaction demarcation
 * play.db.Model support
 
 h3. TODO
