@@ -26,9 +26,9 @@ import com.orientechnologies.orient.server.OServerMain;
  */
 public class ODBPlugin extends PlayPlugin {
 
-    public static String url = "";
-    public static String user = "";
-    public static String passwd = "";
+    public static String url;
+    public static String user;
+    public static String passwd;
 
     private OServer server;
 

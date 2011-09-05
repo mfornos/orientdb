@@ -15,6 +15,7 @@ h3. Features
 h3. TODO
 
 * bindings and Model.Factory for Fixtures and CRUD
+* support for graphDB
 
 h2. Configuration
 
