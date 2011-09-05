@@ -125,6 +125,6 @@ bc.. public class MyController extends Controller {
 h3. References
 
 * <a href="http://www.orientechnologies.com/orient-db.htm">OrientDB</a>
-* <a href="http://code.google.com/p/orient/wiki/Main?tm=6">OrientDB documentation</a>
+* <a href="http://code.google.com/p/orient/wiki/Main">OrientDB documentation</a>
 
 p. //
