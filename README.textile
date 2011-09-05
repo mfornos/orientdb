@@ -122,6 +122,12 @@ bc.. public class MyController extends Controller {
 
 }
 
+h3. Direct access
+
+If you need direct access to any ODatabase use play.modules.orientdb.ODB
+
+bc.. ODatabaseDocumentTx docdb = ODB.openDocumentDB(); 
+
 h3. References
 
 * <a href="http://www.orientechnologies.com/orient-db.htm">OrientDB</a>
