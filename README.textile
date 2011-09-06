@@ -4,16 +4,16 @@ OrientDB for Play! Framework
 
 h3. Features
 
-* Embed server for development
+* Embedded server for development
 * Allows hot class-reloading as usual
 * Injection of database sessions in controllers
 * Annotation-based transaction demarcation
+* Basic support for RecordHooks and DatabaseListeners
 * play.db.Model support
 
 h3. TODO
 
 * bindings and Model.Factory for Fixtures and CRUD
-* register hooks
 
 h2. Configuration
 
@@ -76,9 +76,7 @@ bc.. public class MyController extends Controller {
         Item item = new Item();
         item.name = name;
         item.description = description;
-        if (!item.validateAndSave()) {
-            flash.error("Please fill the form...!");
-        }
+        item.save();
         index();
     }
     
@@ -126,13 +124,34 @@ bc.. public class MyController extends Controller {
 
 h3. Graph Database
 
-[example here]
+A simple test:
+
+bc.. public class MyController extends Controller {
+   @Inject static OGraphDatabase database;
+	
+   public static void someMethod() {
+      OClass vehicleClass = database.createVertexType("GraphVehicle");
+      database.createVertexType("GraphCar", vehicleClass);
+      database.createVertexType("GraphMotocycle", "GraphVehicle");
+
+      ODocument carNode = (ODocument) database.createVertex("GraphCar").field("brand", "Hyundai")
+                    .field("model", "Coupe").field("year", 2003).save();
+      ODocument motoNode = (ODocument) database.createVertex("GraphMotocycle").field("brand", "Yamaha")
+                    .field("model", "X-City 250").field("year", 2009).save();
+
+      database.createEdge(carNode, motoNode).save();
+      ...
+   }
+   ...
+}
 
 h3. Direct access
 
 If you need direct access to any ODatabase use play.modules.orientdb.ODB
 
-bc.. ODatabaseDocumentTx docdb = ODB.openDocumentDB(); 
+@ODatabaseDocumentTx docdb = ODB.openDocumentDB();@ 
+
+p. and so on
 
 h3. References
 
