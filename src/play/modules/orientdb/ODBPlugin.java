@@ -128,10 +128,14 @@ public class ODBPlugin extends PlayPlugin {
 
     private void clearReferencesToStaleClasses() {
         try {
-            ODatabaseObjectPool.global().getPools().clear();
             Field classes = OObjectSerializerHelper.class.getDeclaredField("classes");
             classes.setAccessible(true);
             classes.set(null, new HashMap<String, List<Field>>());
+        } catch (Exception e) {
+            // don't worry
+        }
+        try {
+            ODatabaseObjectPool.global().getPools().clear();
         } catch (Exception e) {
             // don't worry
         }
