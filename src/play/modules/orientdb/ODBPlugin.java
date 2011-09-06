@@ -1,7 +1,15 @@
 package play.modules.orientdb;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 
 import play.Logger;
@@ -20,6 +28,7 @@ import com.orientechnologies.orient.core.db.graph.OGraphDatabasePool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectPool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
+import com.orientechnologies.orient.core.serialization.serializer.object.OObjectSerializerHelper;
 import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.OServerMain;
 
@@ -36,6 +45,7 @@ public class ODBPlugin extends PlayPlugin {
     private OServer server;
 
     private int openInView = 0;
+    private boolean stale;
 
     static final int OIV_DOCUMENT_DB = 1;
     static final int OIV_OBJECT_DB = 2;
@@ -57,6 +67,12 @@ public class ODBPlugin extends PlayPlugin {
     }
 
     @Override
+    public void detectChange() {
+        if (stale && Play.mode == Mode.DEV)
+            throw new RuntimeException("Need reload");
+    }
+
+    @Override
     public void enhance(ApplicationClass applicationClass) throws Exception {
         new ODBEnhancer().enhanceThisClass(applicationClass);
     }
@@ -68,6 +84,8 @@ public class ODBPlugin extends PlayPlugin {
 
     @Override
     public void onApplicationStart() {
+        stale = false;
+
         if (server == null) {
             configure();
 
@@ -76,6 +94,7 @@ public class ODBPlugin extends PlayPlugin {
             } else {
                 runEmbedOrientDB();
             }
+
             registerEntityClasses();
         }
     }
@@ -84,20 +103,18 @@ public class ODBPlugin extends PlayPlugin {
     public void onApplicationStop() {
         if (server != null) {
             if (Play.mode == Mode.DEV) {
-                clearPools();
-            } else {
-                server.shutdown();
-                server = null;
+                clearReferencesToStaleClasses();
             }
+            server.shutdown();
+            server = null;
         }
     }
 
-    // @Override
-    // public List<ApplicationClass> onClassesChange(List<ApplicationClass>
-    // modified) {
-    // // TODO impl?
-    // return modified;
-    // }
+    @Override
+    public List<ApplicationClass> onClassesChange(List<ApplicationClass> modified) {
+        stale = true;
+        return super.onClassesChange(modified);
+    }
 
     @Override
     public void onInvocationException(Throwable e) {
@@ -109,9 +126,12 @@ public class ODBPlugin extends PlayPlugin {
         ODB.commit();
     }
 
-    private void clearPools() {
+    private void clearReferencesToStaleClasses() {
         try {
             ODatabaseObjectPool.global().getPools().clear();
+            Field classes = OObjectSerializerHelper.class.getDeclaredField("classes");
+            classes.setAccessible(true);
+            classes.set(null, new HashMap<String, List<Field>>());
         } catch (Exception e) {
             // don't worry
         }
@@ -142,26 +162,22 @@ public class ODBPlugin extends PlayPlugin {
     }
 
     private void registerEntityClasses() {
-
         String modelPackage = Play.configuration.getProperty("odb.entities.package", "models");
         ODatabaseObjectTx db = new ODatabaseObjectTx(url);
         db.open(user, passwd);
 
-        for (Class<?> javaClass : Play.classloader.getAllClasses()) {
+        for (ApplicationClass appClass : Play.classes.all()) {
+            Class<?> javaClass = appClass.javaClass;
             if (javaClass.getName().startsWith(modelPackage)) {
                 // TODO handle Oversize
                 // TODO handle Register hooks
                 String entityName = javaClass.getSimpleName();
-
-                if (db.getEntityManager().getEntityClass(entityName) == null) {
-                    Logger.trace("ODB registering %s", javaClass.getName());
-                    db.getEntityManager().registerEntityClass(javaClass);
-                }
-
+                Logger.trace("ODB registering %s", javaClass.getName());
+                db.getEntityManager().registerEntityClass(javaClass);
                 OSchema schema = db.getMetadata().getSchema();
                 if (!schema.existsClass(entityName)) {
-                    Logger.trace("ODB creating empty schema for %s", entityName);
-                    schema.createClass(entityName);
+                    Logger.trace("ODB creating schema for %s", entityName);
+                    schema.createClass(javaClass);
                     schema.save();
                 }
             }
@@ -177,7 +193,7 @@ public class ODBPlugin extends PlayPlugin {
             VirtualFile vconf = Play.getVirtualFile(cfile);
             final File configuration;
             if (vconf == null || !vconf.exists()) {
-                configuration = new File(ODBPlugin.class.getResource(cfile).toURI());
+                configuration = writeConfigFile(cfile);
             } else {
                 configuration = vconf.getRealFile();
             }
@@ -185,5 +201,23 @@ public class ODBPlugin extends PlayPlugin {
         } catch (Exception e) {
             throw new UnexpectedException(e);
         }
+    }
+
+    private File writeConfigFile(String cfile) throws FileNotFoundException, IOException {
+        File f = new File("db.config");
+        if (f.exists())
+            return f;
+
+        InputStream in = ODBPlugin.class.getResourceAsStream(cfile);
+        OutputStream out = new FileOutputStream(f);
+        byte buf[] = new byte[1024];
+        int len;
+        while ((len = in.read(buf)) > 0)
+            out.write(buf, 0, len);
+
+        out.close();
+        in.close();
+
+        return f;
     }
 }

@@ -24,7 +24,7 @@
         <copy todir="tmp/classes">
             <fileset dir="src">
                 <include name="**/*.properties"/>
-                <include name="**/*.xml"/>
+                <include name="**/*.config"/>
                 <include name="**/play.plugins"/>
                 <include name="**/play.static"/>
             </fileset>
