@@ -27,14 +27,17 @@ import com.orientechnologies.orient.server.OServerMain;
 public class ODBPlugin extends PlayPlugin {
 
     public static String url;
+    public static String gurl;
     public static String user;
     public static String passwd;
 
     private OServer server;
 
-    private boolean openInView;
-    private boolean oivDocumentDB;
-    private boolean oivObjectDB;
+    private int openInView = 0;
+
+    static final int OIV_DOCUMENT_DB = 1;
+    static final int OIV_OBJECT_DB = 2;
+    static final int OIV_GRAPH_DB = 3;
 
     @Override
     public void beforeActionInvocation(Method actionMethod) {
@@ -46,9 +49,8 @@ public class ODBPlugin extends PlayPlugin {
 
     @Override
     public void beforeInvocation() {
-        if (openInView) {
-            Injector.inject(new DatabaseSource((oivDocumentDB) ? ODB.openDocumentDB() : null, (oivObjectDB) ? ODB
-                    .openObjectDB() : null));
+        if (openInView != 0) {
+            Injector.inject(new DatabaseSource(openInView));
         }
     }
 
@@ -114,9 +116,13 @@ public class ODBPlugin extends PlayPlugin {
         url = p.getProperty("odb.url", "memory:temp");
         user = p.getProperty("odb.user", "admin");
         passwd = p.getProperty("odb.password", "admin");
-        openInView = Boolean.parseBoolean(p.getProperty("odb.open-in-view", "true"));
-        oivDocumentDB = Boolean.parseBoolean(p.getProperty("odb.open-in-view.documentdb", "true"));
-        oivObjectDB = Boolean.parseBoolean(p.getProperty("odb.open-in-view.objectdb", "true"));
+        gurl = p.getProperty("odb.graph.url", null);
+        if (Boolean.parseBoolean(p.getProperty("odb.open-in-view.documentdb", "true")))
+            openInView |= OIV_DOCUMENT_DB;
+        if (Boolean.parseBoolean(p.getProperty("odb.open-in-view.objectdb", "true")))
+            openInView |= OIV_OBJECT_DB;
+        if (Boolean.parseBoolean(p.getProperty("odb.open-in-view.graphdb", "false")))
+            openInView |= OIV_GRAPH_DB;
     }
 
     private void registerEntityClasses() {
@@ -126,6 +132,8 @@ public class ODBPlugin extends PlayPlugin {
 
         for (ApplicationClass appClass : Play.classes.all()) {
             if (appClass.javaClass.getName().startsWith(modelPackage)) {
+                // TODO handle Oversize
+                // TODO handle Register hooks
                 db.getEntityManager().registerEntityClass(appClass.javaClass);
                 db.getMetadata().getSchema().createClass(appClass.javaClass.getSimpleName());
             }

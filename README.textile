@@ -13,7 +13,7 @@ h3. Features
 h3. TODO
 
 * bindings and Model.Factory for Fixtures and CRUD
-* support for graphDB
+* register hooks
 
 h2. Configuration
 
@@ -24,14 +24,16 @@ bc.. # OrientDB Module
 # odb.url=memory:temp
 # odb.user=admin
 # odb.password=admin
-# Path to custom configuration file, in classpath or retalive to play application directory (vfs)
+# Separate url for graphDB, if not specified uses odb.url
+# odb.graph.url=memory:temp
+# Path to custom configuration file, in classpath or retalive to conf/ dir
 # odb.config.file=/play/modules/orientdb/db.config
 # Package prefix to scan entities
 # odb.entities.package=models
 # Control open session in view
-# odb.open-in-view=true
 # odb.open-in-view.documentdb=true
 # odb.open-in-view.objectdb=true
+# odb.open-in-view.graphdb=false
 
 h2. Basic usage
 
@@ -121,6 +123,10 @@ bc.. public class MyController extends Controller {
     }
 
 }
+
+h3. Graph Database
+
+[example here]
 
 h3. Direct access
 
