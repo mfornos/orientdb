@@ -1,8 +1,10 @@
 import org.junit.*;
 
+import com.orientechnologies.orient.core.db.graph.OGraphDatabase;
 import com.orientechnologies.orient.core.db.object.ODatabaseObject;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.id.ORID;
+import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 
@@ -27,7 +29,8 @@ public class BasicTest extends UnitTest {
         db.save(item);
         assertEquals(1, db.countClass(Item.class));
         for (Item it : db.browseClass(Item.class)) {
-            assertEquals("#5:0", db.getIdentity(it).toString());
+            assertNotNull(db.getIdentity(it).toString());
+            assertEquals("Item578", it.name);
             db.delete(it);
         }
     }
@@ -86,6 +89,33 @@ public class BasicTest extends UnitTest {
         }
 
         assertEquals(database.countClusterElements("Company"), startRecordNumber - 1);
+    }
+
+    @Test
+    public void graphDB() {
+        OGraphDatabase database = ODB.openGraphDB();
+        try {
+
+            OClass vehicleClass = database.createVertexType("GraphVehicle");
+            database.createVertexType("GraphCar", vehicleClass);
+            database.createVertexType("GraphMotocycle", "GraphVehicle");
+
+            ODocument carNode = (ODocument) database.createVertex("GraphCar").field("brand", "Hyundai")
+                    .field("model", "Coupe").field("year", 2003).save();
+            ODocument motoNode = (ODocument) database.createVertex("GraphMotocycle").field("brand", "Yamaha")
+                    .field("model", "X-City 250").field("year", 2009).save();
+
+            database.createEdge(carNode, motoNode).save();
+
+            List<ODocument> result = database.query(new OSQLSynchQuery<ODocument>("select from GraphVehicle"));
+            Assert.assertEquals(result.size(), 2);
+            for (ODocument v : result) {
+                Assert.assertTrue(v.getSchemaClass().isSubClassOf(vehicleClass));
+            }
+
+        } finally {
+            database.close();
+        }
     }
 
 }

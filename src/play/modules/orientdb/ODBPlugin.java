@@ -23,10 +23,12 @@ import play.vfs.VirtualFile;
 
 import com.orientechnologies.orient.client.remote.OEngineRemote;
 import com.orientechnologies.orient.core.Orient;
+import com.orientechnologies.orient.core.db.ODatabaseListener;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool;
 import com.orientechnologies.orient.core.db.graph.OGraphDatabasePool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectPool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
+import com.orientechnologies.orient.core.hook.ORecordHook;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.serialization.serializer.object.OObjectSerializerHelper;
 import com.orientechnologies.orient.server.OServer;
@@ -37,6 +39,7 @@ import com.orientechnologies.orient.server.OServerMain;
  */
 public class ODBPlugin extends PlayPlugin {
 
+    private static final String PLUGIN_PREFIX = "[ODB] ";
     public static String url;
     public static String gurl;
     public static String user;
@@ -92,7 +95,7 @@ public class ODBPlugin extends PlayPlugin {
             if (url.startsWith("remote")) {
                 Orient.instance().registerEngine(new OEngineRemote());
             } else {
-                runEmbedOrientDB();
+                runEmbeddedOrientDB();
             }
 
             registerEntityClasses();
@@ -127,6 +130,7 @@ public class ODBPlugin extends PlayPlugin {
     }
 
     private void clearReferencesToStaleClasses() {
+        Logger.trace(PLUGIN_PREFIX + " Cleaning stale classes");
         try {
             Field classes = OObjectSerializerHelper.class.getDeclaredField("classes");
             classes.setAccessible(true);
@@ -165,32 +169,47 @@ public class ODBPlugin extends PlayPlugin {
             openInView |= OIV_GRAPH_DB;
     }
 
+    private void info(String msg, Object... args) {
+        Logger.info(PLUGIN_PREFIX + msg, args);
+    }
+
     private void registerEntityClasses() {
         String modelPackage = Play.configuration.getProperty("odb.entities.package", "models");
         ODatabaseObjectTx db = new ODatabaseObjectTx(url);
         db.open(user, passwd);
 
+        info("Registering Entities");
         for (ApplicationClass appClass : Play.classes.all()) {
             Class<?> javaClass = appClass.javaClass;
             if (javaClass.getName().startsWith(modelPackage)) {
                 // TODO handle Oversize
-                // TODO handle Register hooks
                 String entityName = javaClass.getSimpleName();
-                Logger.trace("ODB registering %s", javaClass.getName());
+                info("Entity: %s", javaClass.getName());
                 db.getEntityManager().registerEntityClass(javaClass);
                 OSchema schema = db.getMetadata().getSchema();
                 if (!schema.existsClass(entityName)) {
-                    Logger.trace("ODB creating schema for %s", entityName);
+                    info("Schema: %s", entityName);
                     schema.createClass(javaClass);
                     schema.save();
                 }
             }
         }
+        // TODO filtered by package name?
+        info("Registering Database Listeners");
+        for (ApplicationClass listener : Play.classes.getAssignableClasses(ODatabaseListener.class)) {
+            info("Listener: %s", listener.javaClass.getName());
+            ODB.listeners.add(listener);
+        }
+        info("Registering Record Hooks");
+        for (ApplicationClass hook : Play.classes.getAssignableClasses(ORecordHook.class)) {
+            info("Hook: %s", hook.javaClass.getName());
+            ODB.hooks.add(hook);
+        }
 
         db.close();
     }
 
-    private void runEmbedOrientDB() {
+    private void runEmbeddedOrientDB() {
         try {
             server = OServerMain.create();
             String cfile = Play.configuration.getProperty("odb.config.file", "/play/modules/orientdb/db.config");
@@ -201,7 +220,9 @@ public class ODBPlugin extends PlayPlugin {
             } else {
                 configuration = vconf.getRealFile();
             }
+            info("Starting OrientDB embbeded");
             server.startup(configuration);
+            info("OrientDB started");
         } catch (Exception e) {
             throw new UnexpectedException(e);
         }

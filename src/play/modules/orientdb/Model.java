@@ -5,6 +5,7 @@ import java.util.List;
 import play.data.validation.Validation;
 
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
+import com.orientechnologies.orient.core.exception.ORecordNotFoundException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.iterator.OObjectIteratorMultiCluster;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
@@ -68,7 +69,11 @@ public class Model implements play.db.Model {
      */
     @SuppressWarnings("unchecked")
     public static <T extends Model> T findById(ORID id) {
-        return (T) db().load(id);
+        try {
+            return (T) db().load(id);
+        } catch (ORecordNotFoundException e) {
+            return null;
+        }
     }
 
     @Override
