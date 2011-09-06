@@ -141,7 +141,7 @@ public class ODB {
         }
     }
 
-    // XXX expensive operation
+    // XXX expensive operation, find a better solution
     private static void registerHooks(ODatabaseObjectTx db) {
         for (ApplicationClass hook : hooks) {
             db.registerHook((ORecordHook) newInstance(hook));
