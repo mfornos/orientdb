@@ -2,9 +2,9 @@ package play.modules.orientdb;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Properties;
 
+import play.Logger;
 import play.Play;
 import play.Play.Mode;
 import play.PlayPlugin;
@@ -16,8 +16,10 @@ import play.vfs.VirtualFile;
 import com.orientechnologies.orient.client.remote.OEngineRemote;
 import com.orientechnologies.orient.core.Orient;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool;
+import com.orientechnologies.orient.core.db.graph.OGraphDatabasePool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectPool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
+import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.OServerMain;
 
@@ -37,7 +39,7 @@ public class ODBPlugin extends PlayPlugin {
 
     static final int OIV_DOCUMENT_DB = 1;
     static final int OIV_OBJECT_DB = 2;
-    static final int OIV_GRAPH_DB = 3;
+    static final int OIV_GRAPH_DB = 4; // 8, 16
 
     @Override
     public void beforeActionInvocation(Method actionMethod) {
@@ -81,20 +83,21 @@ public class ODBPlugin extends PlayPlugin {
     @Override
     public void onApplicationStop() {
         if (server != null) {
-            server.shutdown();
-            server = null;
             if (Play.mode == Mode.DEV) {
                 clearPools();
+            } else {
+                server.shutdown();
+                server = null;
             }
         }
     }
 
-    @Override
-    public List<ApplicationClass> onClassesChange(List<ApplicationClass> modified) {
-        clearPools();
-        registerEntityClasses();
-        return modified;
-    }
+    // @Override
+    // public List<ApplicationClass> onClassesChange(List<ApplicationClass>
+    // modified) {
+    // // TODO impl?
+    // return modified;
+    // }
 
     @Override
     public void onInvocationException(Throwable e) {
@@ -107,8 +110,21 @@ public class ODBPlugin extends PlayPlugin {
     }
 
     private void clearPools() {
-        ODatabaseObjectPool.global().getPools().clear();
-        ODatabaseDocumentPool.global().getPools().clear();
+        try {
+            ODatabaseObjectPool.global().getPools().clear();
+        } catch (Exception e) {
+            // don't worry
+        }
+        try {
+            ODatabaseDocumentPool.global().getPools().clear();
+        } catch (Exception e) {
+            // don't worry
+        }
+        try {
+            OGraphDatabasePool.global().getPools().clear();
+        } catch (Exception e) {
+            // don't worry
+        }
     }
 
     private void configure() {
@@ -126,18 +142,29 @@ public class ODBPlugin extends PlayPlugin {
     }
 
     private void registerEntityClasses() {
+
         String modelPackage = Play.configuration.getProperty("odb.entities.package", "models");
         ODatabaseObjectTx db = new ODatabaseObjectTx(url);
         db.open(user, passwd);
 
-        for (ApplicationClass appClass : Play.classes.all()) {
-            if (appClass.javaClass.getName().startsWith(modelPackage)) {
+        for (Class<?> javaClass : Play.classloader.getAllClasses()) {
+            if (javaClass.getName().startsWith(modelPackage)) {
                 // TODO handle Oversize
                 // TODO handle Register hooks
-                db.getEntityManager().registerEntityClass(appClass.javaClass);
-                db.getMetadata().getSchema().createClass(appClass.javaClass.getSimpleName());
+                String entityName = javaClass.getSimpleName();
+
+                if (db.getEntityManager().getEntityClass(entityName) == null) {
+                    Logger.trace("ODB registering %s", javaClass.getName());
+                    db.getEntityManager().registerEntityClass(javaClass);
+                }
+
+                OSchema schema = db.getMetadata().getSchema();
+                if (!schema.existsClass(entityName)) {
+                    Logger.trace("ODB creating empty schema for %s", entityName);
+                    schema.createClass(entityName);
+                    schema.save();
+                }
             }
-            db.getMetadata().getSchema().save();
         }
 
         db.close();
