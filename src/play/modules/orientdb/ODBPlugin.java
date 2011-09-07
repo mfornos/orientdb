@@ -6,10 +6,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import play.Logger;
@@ -23,20 +25,25 @@ import play.vfs.VirtualFile;
 
 import com.orientechnologies.orient.client.remote.OEngineRemote;
 import com.orientechnologies.orient.core.Orient;
+import com.orientechnologies.orient.core.command.OCommandManager;
 import com.orientechnologies.orient.core.db.ODatabaseListener;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool;
 import com.orientechnologies.orient.core.db.graph.OGraphDatabasePool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectPool;
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
+import com.orientechnologies.orient.core.exception.ORecordNotFoundException;
 import com.orientechnologies.orient.core.hook.ORecordHook;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.serialization.serializer.object.OObjectSerializerHelper;
+import com.orientechnologies.orient.core.sql.OCommandExecutorSQLDelegate;
+import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.OServerMain;
 
 /**
  * The Orient DB plugin
  */
+// TODO implement getStatus
 public class ODBPlugin extends PlayPlugin {
 
     private static final String PLUGIN_PREFIX = "[ODB] ";
@@ -70,6 +77,43 @@ public class ODBPlugin extends PlayPlugin {
     }
 
     @Override
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public Object bind(String name, Class clazz, java.lang.reflect.Type type, Annotation[] annotations,
+            Map<String, String[]> params) {
+        if (Model.class.isAssignableFrom(clazz)) {
+            String keyName = Model.Manager.factoryFor(clazz).keyName();
+            String idKey = name + "." + keyName;
+            if (params.containsKey(idKey) && params.get(idKey).length > 0 && params.get(idKey)[0] != null
+                    && params.get(idKey)[0].trim().length() > 0) {
+                String id = params.get(idKey)[0];
+                try {
+                    OSQLSynchQuery<Model> query = new OSQLSynchQuery<Model>("from " + clazz.getName() + " o where o."
+                            + keyName + " = ?");
+                    Object param = play.data.binding.Binder.directBind(name, annotations, id + "", Model.Manager
+                            .factoryFor(clazz).keyType());
+                    List<Model> res = ODB.openObjectDB().query(query, param);
+                    Object o = res.get(0);
+                    return Model.edit(o, name, params, annotations);
+                } catch (ORecordNotFoundException e) {
+                    // ok
+                } catch (Exception e) {
+                    throw new UnexpectedException(e);
+                }
+            }
+            return Model.create(clazz, name, params, annotations);
+        }
+        return super.bind(name, clazz, type, annotations, params);
+    }
+
+    @Override
+    public Object bind(String name, Object o, Map<String, String[]> params) {
+        if (o instanceof Model) {
+            return Model.edit(o, name, params, null);
+        }
+        return null;
+    }
+
+    @Override
     public void detectChange() {
         if (stale && Play.mode == Mode.DEV)
             throw new RuntimeException("Need reload");
@@ -83,6 +127,14 @@ public class ODBPlugin extends PlayPlugin {
     @Override
     public void invocationFinally() {
         ODB.close();
+    }
+
+    @Override
+    public play.db.Model.Factory modelFactory(Class<? extends play.db.Model> modelClass) {
+        if (Model.class.isAssignableFrom(modelClass)) {
+            return new OModelLoader(modelClass);
+        }
+        return null;
     }
 
     @Override
@@ -127,6 +179,12 @@ public class ODBPlugin extends PlayPlugin {
     @Override
     public void onInvocationSuccess() {
         ODB.commit();
+    }
+
+    @Override
+    public void onLoad() {
+        OCommandManager cmdMan = OCommandManager.instance();
+        cmdMan.registerExecutor(OSQLSynchPaginatedQuery.class, OCommandExecutorSQLDelegate.class);
     }
 
     private void clearReferencesToStaleClasses() {

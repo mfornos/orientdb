@@ -1,37 +1,39 @@
 package models;
 
+import play.modules.orientdb.Model;
+
 import com.orientechnologies.orient.core.annotation.OId;
 import com.orientechnologies.orient.core.annotation.OVersion;
 
-public class Country {
-        @OId
-        private Object  id;
+public class Country extends Model {
+    @OId
+    private Object id;
 
-        @OVersion
-        private Object  version;
+    @OVersion
+    private Object version;
 
-        private String  name;
+    private String name;
 
-        public Country() {
-        }
+    public Country() {
+    }
 
-        public Country(String iName) {
-                name = iName;
-        }
+    public Country(String iName) {
+        name = iName;
+    }
 
-        public String getName() {
-                return name;
-        }
+    public Object getId() {
+        return id;
+    }
 
-        public void setName(String name) {
-                this.name = name;
-        }
+    public String getName() {
+        return name;
+    }
 
-        public Object getId() {
-                return id;
-        }
+    public Object getVersion() {
+        return version;
+    }
 
-        public Object getVersion() {
-                return version;
-        }
+    public void setName(String name) {
+        this.name = name;
+    }
 }

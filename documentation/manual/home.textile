@@ -2,16 +2,6 @@ h1. OrientDB Module
 
 OrientDB for Play! Framework
 
-h3. Features
-
-* play.db.Model support
-* CRUD support
-* Embedded server for development
-* Injection of database sessions in controllers
-* Annotation-based transaction demarcation
-* Live class-reloading as usual
-* Basic support for RecordHooks and DatabaseListeners
-
 h2. Configuration
 
 These are the default values that you can override in @conf/application.conf@

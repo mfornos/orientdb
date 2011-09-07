@@ -16,121 +16,130 @@ package models;
  * limitations under the License.
  */
 
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import javax.persistence.Id;
 
+import play.modules.orientdb.Model;
+
 import com.orientechnologies.orient.core.annotation.OAfterDeserialization;
 import com.orientechnologies.orient.core.annotation.OBeforeSerialization;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 
-public class Account {
-        @Id
-        private Object                                          rid;
+public class Account extends Model {
+    @Id
+    private Object rid;
 
-        private int                                                             id;
-        private String                                          name;
-        private String                                          surname;
-        private Date                                                    birthDate;
-        private float                                                   salary;
-        private List<Address>                   addresses               = new ArrayList<Address>();
-        private byte[]                                          thumbnail;
-        private transient byte[]        photo;
-        private transient boolean       initialized     = false;
+    private int id;
+    private String name;
+    private String surname;
+    private Date birthDate;
+    private float salary;
+    private List<Address> addresses = new ArrayList<Address>();
+    private byte[] thumbnail;
+    private transient byte[] photo;
+    private transient boolean initialized = false;
 
-        public Account() {
+    public Account() {
+    }
+
+    public Account(int iId, String iName, String iSurname) {
+        this.id = iId;
+        this.name = iName;
+        this.surname = iSurname;
+    }
+
+    @OAfterDeserialization
+    public void fromStream(final ODocument iDocument) {
+        initialized = true;
+        if (iDocument.containsField("externalPhoto")) {
+            // READ THE PHOTO FROM AN EXTERNAL RECORD AS PURE BINARY
+            ORecordBytes extRecord = iDocument.field("externalPhoto");
+            photo = extRecord.toStream();
         }
+    }
 
-        public Account(int iId, String iName, String iSurname) {
-                this.id = iId;
-                this.name = iName;
-                this.surname = iSurname;
-        }
+    public List<Address> getAddresses() {
+        return addresses;
+    }
 
-        public String getName() {
-                return name;
-        }
+    public Date getBirthDate() {
+        return birthDate;
+    }
 
-        public void setName(String name) {
-                this.name = name;
-        }
+    public int getId() {
+        return id;
+    }
 
-        public String getSurname() {
-                return surname;
-        }
+    public String getName() {
+        return name;
+    }
 
-        public void setSurname(String surname) {
-                this.surname = surname;
-        }
+    public byte[] getPhoto() {
+        return photo;
+    }
 
-        public List<Address> getAddresses() {
-                return addresses;
-        }
+    public Object getRid() {
+        return rid;
+    }
 
-        public int getId() {
-                return id;
-        }
+    public float getSalary() {
+        return salary;
+    }
 
-        public Date getBirthDate() {
-                return birthDate;
-        }
+    public String getSurname() {
+        return surname;
+    }
 
-        public void setBirthDate(Date birthDate) {
-                this.birthDate = birthDate;
-        }
+    public byte[] getThumbnail() {
+        return thumbnail;
+    }
 
-        public float getSalary() {
-                return salary;
-        }
+    public boolean isInitialized() {
+        return initialized;
+    }
 
-        public void setSalary(float salary) {
-                this.salary = salary;
-        }
+    public void setAddresses(List<Address> addresses) {
+        this.addresses = addresses;
+    }
 
-        public boolean isInitialized() {
-                return initialized;
-        }
+    public void setBirthDate(Date birthDate) {
+        this.birthDate = birthDate;
+    }
 
-        public Object getRid() {
-                return rid;
-        }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-        public byte[] getThumbnail() {
-                return thumbnail;
-        }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-        public void setThumbnail(byte[] iThumbnail) {
-                this.thumbnail = iThumbnail;
-        }
+    public void setPhoto(byte[] photo) {
+        this.photo = photo;
+    }
 
-        public byte[] getPhoto() {
-                return photo;
-        }
+    public void setSalary(float salary) {
+        this.salary = salary;
+    }
 
-        public void setPhoto(byte[] photo) {
-                this.photo = photo;
-        }
+    public void setSurname(String surname) {
+        this.surname = surname;
+    }
 
-        @OAfterDeserialization
-        public void fromStream(final ODocument iDocument) {
-                initialized = true;
-                if (iDocument.containsField("externalPhoto")) {
-                        // READ THE PHOTO FROM AN EXTERNAL RECORD AS PURE BINARY
-                        ORecordBytes extRecord = iDocument.field("externalPhoto");
-                        photo = extRecord.toStream();
-                }
-        }
+    public void setThumbnail(byte[] iThumbnail) {
+        this.thumbnail = iThumbnail;
+    }
 
-        @OBeforeSerialization
-        public void toStream(final ODocument iDocument) {
-                if (thumbnail != null) {
-                        // WRITE THE PHOTO IN AN EXTERNAL RECORD AS PURE BINARY
-                        ORecordBytes externalPhoto = new ORecordBytes(iDocument.getDatabase(), thumbnail);
-                        iDocument.field("externalPhoto", externalPhoto);
-                }
+    @OBeforeSerialization
+    public void toStream(final ODocument iDocument) {
+        if (thumbnail != null) {
+            // WRITE THE PHOTO IN AN EXTERNAL RECORD AS PURE BINARY
+            ORecordBytes externalPhoto = new ORecordBytes(iDocument.getDatabase(), thumbnail);
+            iDocument.field("externalPhoto", externalPhoto);
         }
+    }
 }

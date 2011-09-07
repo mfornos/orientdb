@@ -3,45 +3,47 @@ package models;
 import javax.persistence.Id;
 import javax.persistence.Version;
 
-public class City {
-        @Id
-        private Long            id;
+import play.modules.orientdb.Model;
 
-        @Version
-        private Long            version;
+public class City extends Model {
+    @Id
+    private String id;
 
-        private String  name;
-        private Country country;
+    @Version
+    private Long version;
 
-        public City() {
-        }
+    private String name;
+    private Country country;
 
-        public City(Country iCountry, String iName) {
-                country = iCountry;
-                name = iName;
-        }
+    public City() {
+    }
 
-        public String getName() {
-                return name;
-        }
+    public City(Country iCountry, String iName) {
+        country = iCountry;
+        name = iName;
+    }
 
-        public void setName(String name) {
-                this.name = name;
-        }
+    public Country getCountry() {
+        return country;
+    }
 
-        public Country getCountry() {
-                return country;
-        }
+    public String getId() {
+        return id;
+    }
 
-        public Object setCountry(Country iCountry) {
-                return country = iCountry;
-        }
+    public String getName() {
+        return name;
+    }
 
-        public Long getId() {
-                return id;
-        }
+    public Long getVersion() {
+        return version;
+    }
 
-        public Long getVersion() {
-                return version;
-        }
+    public Object setCountry(Country iCountry) {
+        return country = iCountry;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

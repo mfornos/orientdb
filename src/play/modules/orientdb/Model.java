@@ -1,12 +1,29 @@
 package play.modules.orientdb;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
+import play.Play;
+import play.data.binding.BeanWrapper;
 import play.data.validation.Validation;
+import play.exceptions.UnexpectedException;
+import play.utils.Utils;
 
 import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.exception.ORecordNotFoundException;
 import com.orientechnologies.orient.core.id.ORID;
+import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.iterator.OObjectIteratorMultiCluster;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 
@@ -29,6 +46,19 @@ public class Model implements play.db.Model {
         throw new UnsupportedOperationException("Model not enhanced.");
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static <T extends Model> T create(Class<T> type, String name, Map<String, String[]> params,
+            Annotation[] annotations) {
+        try {
+            Constructor c = type.getDeclaredConstructor();
+            c.setAccessible(true);
+            T model = (T) c.newInstance();
+            return (T) edit(model, name, params, annotations);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static ODatabaseObjectTx db() {
         return ODB.openObjectDB();
     }
@@ -45,6 +75,98 @@ public class Model implements play.db.Model {
             i++;
         }
         return i;
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static <T extends Model> T edit(Object o, String name, Map<String, String[]> params, Annotation[] annotations) {
+        try {
+            BeanWrapper bw = new BeanWrapper(o.getClass());
+            // Start with relations
+            Set<Field> fields = new HashSet<Field>();
+            Class clazz = o.getClass();
+            while (!clazz.equals(Object.class)) {
+                Collections.addAll(fields, clazz.getDeclaredFields());
+                clazz = clazz.getSuperclass();
+            }
+            for (Field field : fields) {
+                boolean isEntity = false;
+                String relation = null;
+                boolean multiple = false;
+                //
+                if (Model.class.isAssignableFrom(field.getType())) {
+                    isEntity = true;
+                    relation = field.getType().getName();
+                }
+                if (Collection.class.isAssignableFrom(field.getType())) {
+                    Class fieldType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+                    if (Model.class.isAssignableFrom(fieldType)) {
+                        isEntity = true;
+                        relation = fieldType.getName();
+                        multiple = true;
+                    }
+                }
+
+                if (isEntity) {
+                    Class<Model> c = (Class<Model>) Play.classloader.loadClass(relation);
+                    if (Model.class.isAssignableFrom(c)) {
+                        String keyName = Model.Manager.factoryFor(c).keyName();
+                        if (multiple && Collection.class.isAssignableFrom(field.getType())) {
+                            Collection l = new ArrayList();
+                            if (SortedSet.class.isAssignableFrom(field.getType())) {
+                                l = new TreeSet();
+                            } else if (Set.class.isAssignableFrom(field.getType())) {
+                                l = new HashSet();
+                            }
+                            String[] ids = params.get(name + "." + field.getName() + "." + keyName);
+                            if (ids != null) {
+                                params.remove(name + "." + field.getName() + "." + keyName);
+                                for (String _id : ids) {
+                                    if (_id.equals("")) {
+                                        continue;
+                                    }
+                                    Object param = _id;
+                                    try {
+                                        if (param instanceof String) {
+                                            param = new ORecordId((String) param);
+                                        }
+                                        Object res = ODB.openObjectDB().load((ORID) param);
+                                        l.add(res);
+                                    } catch (ORecordNotFoundException e) {
+                                        Validation.addError(name + "." + field.getName(), "validation.notFound", _id);
+                                    }
+                                }
+                                bw.set(field.getName(), o, l);
+                            }
+                        } else {
+                            String[] ids = params.get(name + "." + field.getName() + "." + keyName);
+                            if (ids != null && ids.length > 0 && !ids[0].equals("")) {
+                                params.remove(name + "." + field.getName() + "." + keyName);
+                                Object param = ids[0];
+                                try {
+                                    String localName = name + "." + field.getName();
+                                    if (param instanceof String) {
+                                        param = new ORecordId((String) param);
+                                    }
+                                    Object to = ODB.openObjectDB().load((ORID) param);
+                                    edit(to, localName, params, field.getAnnotations());
+                                    params = Utils.filterMap(params, localName);
+                                    bw.set(field.getName(), o, to);
+                                } catch (ORecordNotFoundException e) {
+                                    Validation.addError(name + "." + field.getName(), "validation.notFound", ids[0]);
+                                }
+                            } else if (ids != null && ids.length > 0 && ids[0].equals("")) {
+                                bw.set(field.getName(), o, null);
+                                params.remove(name + "." + field.getName() + "." + keyName);
+                            }
+                        }
+                    }
+                }
+            }
+            bw.bind(name, o.getClass(), params, "", o, annotations);
+            return (T) o;
+        } catch (Exception e) {
+            throw new UnexpectedException(e);
+        }
     }
 
     /**
@@ -165,4 +287,5 @@ public class Model implements play.db.Model {
         }
         return false;
     }
+
 }
