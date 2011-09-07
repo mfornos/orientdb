@@ -2,7 +2,7 @@ h1. OrientDB Module
 
 OrientDB for Play! Framework
 
-h3. Features
+h2. Features
 
 * play.db.Model support
 * CRUD support
