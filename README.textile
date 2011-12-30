@@ -32,6 +32,8 @@ bc.. # OrientDB Module
 # odb.open-in-view.objectdb=true
 # odb.open-in-view.graphdb=false
 
+p. Note: Please, set odb.open-in-view.[dbtype] to true only for the database types that you want to inject. By default all are enabled.
+
 h2. Basic usage
 
 h3. Object Database

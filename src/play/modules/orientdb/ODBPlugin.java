@@ -223,7 +223,7 @@ public class ODBPlugin extends PlayPlugin {
             openInView |= OIV_DOCUMENT_DB;
         if (Boolean.parseBoolean(p.getProperty("odb.open-in-view.objectdb", "true")))
             openInView |= OIV_OBJECT_DB;
-        if (Boolean.parseBoolean(p.getProperty("odb.open-in-view.graphdb", "false")))
+        if (Boolean.parseBoolean(p.getProperty("odb.open-in-view.graphdb", "true")))
             openInView |= OIV_GRAPH_DB;
     }
 
