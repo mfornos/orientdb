@@ -19,7 +19,7 @@ public class ODBEnhancer extends play.classloading.enhancers.Enhancer {
             // All
             CtMethod all = CtMethod
                     .make(String
-                            .format("public static com.orientechnologies.orient.core.iterator.OObjectIteratorMultiCluster all() { return db().browseClass(play.Play.classloader.getClassIgnoreCase(\"%s\")); }",
+                            .format("public static com.orientechnologies.orient.object.iterator.OObjectIteratorClass all() { return db().browseClass(play.Play.classloader.getClassIgnoreCase(\"%s\")); }",
                                     entityName), ctClass);
             ctClass.addMethod(all);
 

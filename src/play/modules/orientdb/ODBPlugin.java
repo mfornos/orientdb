@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.orientechnologies.orient.object.db.OObjectDatabasePool;
+import com.orientechnologies.orient.object.db.OObjectDatabaseTx;
+import com.orientechnologies.orient.object.serialization.OObjectSerializerHelper;
 import play.Logger;
 import play.Play;
 import play.Play.Mode;
@@ -29,12 +32,9 @@ import com.orientechnologies.orient.core.command.OCommandManager;
 import com.orientechnologies.orient.core.db.ODatabaseListener;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool;
 import com.orientechnologies.orient.core.db.graph.OGraphDatabasePool;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectPool;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.exception.ORecordNotFoundException;
 import com.orientechnologies.orient.core.hook.ORecordHook;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.serialization.serializer.object.OObjectSerializerHelper;
 import com.orientechnologies.orient.core.sql.OCommandExecutorSQLDelegate;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 import com.orientechnologies.orient.server.OServer;
@@ -81,7 +81,7 @@ public class ODBPlugin extends PlayPlugin {
     public Object bind(String name, Class clazz, java.lang.reflect.Type type, Annotation[] annotations,
             Map<String, String[]> params) {
         if (Model.class.isAssignableFrom(clazz)) {
-            String keyName = Model.Manager.factoryFor(clazz).keyName();
+            String keyName = modelFactory(clazz).keyName();
             String idKey = name + "." + keyName;
             if (params.containsKey(idKey) && params.get(idKey).length > 0 && params.get(idKey)[0] != null
                     && params.get(idKey)[0].trim().length() > 0) {
@@ -89,8 +89,7 @@ public class ODBPlugin extends PlayPlugin {
                 try {
                     OSQLSynchQuery<Model> query = new OSQLSynchQuery<Model>("from " + clazz.getName() + " o where o."
                             + keyName + " = ?");
-                    Object param = play.data.binding.Binder.directBind(name, annotations, id + "", Model.Manager
-                            .factoryFor(clazz).keyType());
+                    Object param = play.data.binding.Binder.directBind(name, annotations, id + "", modelFactory(clazz).keyType());
                     List<Model> res = ODB.openObjectDB().query(query, param);
                     Object o = res.get(0);
                     return Model.edit(o, name, params, annotations);
@@ -197,7 +196,7 @@ public class ODBPlugin extends PlayPlugin {
             // don't worry
         }
         try {
-            ODatabaseObjectPool.global().getPools().clear();
+            OObjectDatabasePool.global().getPools().clear();
         } catch (Exception e) {
             // don't worry
         }
@@ -233,7 +232,7 @@ public class ODBPlugin extends PlayPlugin {
 
     private void registerEntityClasses() {
         String modelPackage = Play.configuration.getProperty("odb.entities.package", "models");
-        ODatabaseObjectTx db = new ODatabaseObjectTx(url);
+        OObjectDatabaseTx db = new OObjectDatabaseTx(url);
         db.open(user, passwd);
 
         info("Registering Entities");

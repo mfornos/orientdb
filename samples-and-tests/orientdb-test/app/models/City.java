@@ -18,32 +18,36 @@ public class City extends Model {
     public City() {
     }
 
+    public City(String iName) {
+      name = iName;
+    }
+
     public City(Country iCountry, String iName) {
-        country = iCountry;
-        name = iName;
-    }
-
-    public Country getCountry() {
-        return country;
-    }
-
-    public String getId() {
-        return id;
+      country = iCountry;
+      name = iName;
     }
 
     public String getName() {
-        return name;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public Object setCountry(Country iCountry) {
-        return country = iCountry;
+      return name;
     }
 
     public void setName(String name) {
-        this.name = name;
+      this.name = name;
+    }
+
+    public Country getCountry() {
+      return country;
+    }
+
+    public Object setCountry(Country iCountry) {
+      return country = iCountry;
+    }
+
+    public String getId() {
+      return id;
+    }
+
+    public Long getVersion() {
+      return version;
     }
 }

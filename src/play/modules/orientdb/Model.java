@@ -14,32 +14,34 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.orientechnologies.orient.object.db.OObjectDatabaseTx;
+import com.orientechnologies.orient.object.iterator.OObjectIteratorClass;
 import play.Play;
 import play.data.binding.BeanWrapper;
+import play.data.binding.Binder;
+import play.data.binding.ParamNode;
 import play.data.validation.Validation;
 import play.exceptions.UnexpectedException;
 import play.utils.Utils;
 
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.exception.ORecordNotFoundException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.iterator.OObjectIteratorMultiCluster;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 
 public class Model implements play.db.Model {
     /**
      * Prepare a query to find *all* entities.
-     * 
+     *
      * @return An OObjectIterator
      */
-    public static <T extends Model> OObjectIteratorMultiCluster<T> all() {
+    public static <T extends Model> OObjectIteratorClass<T> all() {
         throw new UnsupportedOperationException("Model not enhanced.");
     }
 
     /**
      * Count entities
-     * 
+     *
      * @return number of entities of this class
      */
     public static long count() {
@@ -47,25 +49,32 @@ public class Model implements play.db.Model {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static <T extends Model> T create(Class<T> type, String name, Map<String, String[]> params,
+    @Deprecated
+    public static <T extends Model> T create(Class<?> type, String name, Map<String, String[]> params,
             Annotation[] annotations) {
+        ParamNode rootParamNode = ParamNode.convert(params);
+        return (T)create(rootParamNode, name, type, annotations);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Model> T create(ParamNode rootParamNode, String name, Class<?> type, Annotation[] annotations) {
         try {
             Constructor c = type.getDeclaredConstructor();
             c.setAccessible(true);
-            T model = (T) c.newInstance();
-            return (T) edit(model, name, params, annotations);
+            Object model = c.newInstance();
+            return (T) edit(rootParamNode, name, model, annotations);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static ODatabaseObjectTx db() {
+    public static OObjectDatabaseTx db() {
         return ODB.openObjectDB();
     }
 
     /**
      * Delete all entities
-     * 
+     *
      * @return Number of entities deleted
      */
     public static int deleteAll() {
@@ -77,8 +86,30 @@ public class Model implements play.db.Model {
         return i;
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Deprecated
+    @SuppressWarnings("unchecked")
     public static <T extends Model> T edit(Object o, String name, Map<String, String[]> params, Annotation[] annotations) {
+        ParamNode rootParamNode = ParamNode.convert(params);
+        return (T)edit( rootParamNode, name, o, annotations);
+    }
+
+    @Deprecated
+    @SuppressWarnings("unchecked")
+    public <T extends Model> T edit(String name, Map<String, String[]> params) {
+        ParamNode rootParamNode = ParamNode.convert(params);
+        return (T)edit(rootParamNode, name, this, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Model> T edit(ParamNode rootParamNode, String name) {
+        edit(rootParamNode, name, this, null);
+        return (T) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Model> T edit(ParamNode rootParamNode, String name, Object o, Annotation[] annotations) {
+        ParamNode paramNode = rootParamNode.getChild(name, true);
+        List<ParamNode.RemovedNode> removedNodesList = new ArrayList<ParamNode.RemovedNode>();
         try {
             BeanWrapper bw = new BeanWrapper(o.getClass());
             // Start with relations
@@ -107,6 +138,7 @@ public class Model implements play.db.Model {
                 }
 
                 if (isEntity) {
+                    ParamNode fieldParamNode = paramNode.getChild(field.getName(), true);
                     Class<Model> c = (Class<Model>) Play.classloader.loadClass(relation);
                     if (Model.class.isAssignableFrom(c)) {
                         String keyName = Model.Manager.factoryFor(c).keyName();
@@ -117,9 +149,9 @@ public class Model implements play.db.Model {
                             } else if (Set.class.isAssignableFrom(field.getType())) {
                                 l = new HashSet();
                             }
-                            String[] ids = params.get(name + "." + field.getName() + "." + keyName);
+                            String[] ids = fieldParamNode.getChild(keyName, true).getValues();
                             if (ids != null) {
-                                params.remove(name + "." + field.getName() + "." + keyName);
+                                fieldParamNode.removeChild(keyName, removedNodesList);
                                 for (String _id : ids) {
                                     if (_id.equals("")) {
                                         continue;
@@ -138,40 +170,46 @@ public class Model implements play.db.Model {
                                 bw.set(field.getName(), o, l);
                             }
                         } else {
-                            String[] ids = params.get(name + "." + field.getName() + "." + keyName);
+                            String[] ids = fieldParamNode.getChild(keyName, true).getValues();
                             if (ids != null && ids.length > 0 && !ids[0].equals("")) {
-                                params.remove(name + "." + field.getName() + "." + keyName);
                                 Object param = ids[0];
                                 try {
-                                    String localName = name + "." + field.getName();
                                     if (param instanceof String) {
                                         param = new ORecordId((String) param);
                                     }
                                     Object to = ODB.openObjectDB().load((ORID) param);
-                                    edit(to, localName, params, field.getAnnotations());
-                                    params = Utils.filterMap(params, localName);
+                                    edit(paramNode, field.getName(), to, field.getAnnotations());
+                                    paramNode.removeChild( field.getName(), removedNodesList);
                                     bw.set(field.getName(), o, to);
                                 } catch (ORecordNotFoundException e) {
                                     Validation.addError(name + "." + field.getName(), "validation.notFound", ids[0]);
+                                    fieldParamNode.removeChild(keyName, removedNodesList);
+                                    if (fieldParamNode.getAllChildren().size()==0) {
+                                    // remove the whole node..
+                                    paramNode.removeChild( field.getName(), removedNodesList);
+                                  }
                                 }
                             } else if (ids != null && ids.length > 0 && ids[0].equals("")) {
                                 bw.set(field.getName(), o, null);
-                                params.remove(name + "." + field.getName() + "." + keyName);
+                                fieldParamNode.removeChild(keyName, removedNodesList);
                             }
                         }
                     }
                 }
             }
-            bw.bind(name, o.getClass(), params, "", o, annotations);
+            ParamNode beanNode = rootParamNode.getChild(name, true);
+            Binder.bindBean(beanNode, o, annotations);
             return (T) o;
         } catch (Exception e) {
             throw new UnexpectedException(e);
+        } finally {
+            ParamNode.restoreRemovedChildren( removedNodesList );
         }
     }
 
     /**
      * Prepare a query to find entities.
-     * 
+     *
      * @param query
      *            OSQL query
      * @param params
@@ -184,7 +222,7 @@ public class Model implements play.db.Model {
 
     /**
      * Find the entity with the corresponding id.
-     * 
+     *
      * @param id
      *            The entity id
      * @return The entity
@@ -215,7 +253,7 @@ public class Model implements play.db.Model {
 
     /**
      * Delete the entity.
-     * 
+     *
      * @return The deleted entity.
      */
     @SuppressWarnings("unchecked")

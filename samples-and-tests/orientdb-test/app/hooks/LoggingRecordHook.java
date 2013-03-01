@@ -2,15 +2,15 @@ package hooks;
 
 import play.Logger;
 
-import com.orientechnologies.orient.core.hook.ORecordHook;
+import com.orientechnologies.orient.core.hook.ORecordHookAbstract;
 import com.orientechnologies.orient.core.record.ORecord;
 
-public class LoggingRecordHook implements ORecordHook {
+public class LoggingRecordHook extends ORecordHookAbstract {
 
     @Override
-    public boolean onTrigger(TYPE type, ORecord<?> record) {
-        // Logger.info("[LOG HOOK] %s %s", type, record.toString());
-        return false;
+    public RESULT onTrigger(TYPE iType, ORecord<?> iRecord) {
+        // Logger.info("[LOG HOOK] %s %s", iType, iRecord.toString());
+        return super.onTrigger(iType, iRecord);
     }
 
 }

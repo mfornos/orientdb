@@ -7,10 +7,10 @@ import com.orientechnologies.orient.core.annotation.OVersion;
 
 public class Country extends Model {
     @OId
-    private Object id;
+    private String id;
 
     @OVersion
-    private Object version;
+    private Long version;
 
     private String name;
 
@@ -21,7 +21,7 @@ public class Country extends Model {
         name = iName;
     }
 
-    public Object getId() {
+    public String getId() {
         return id;
     }
 
@@ -29,7 +29,7 @@ public class Country extends Model {
         return name;
     }
 
-    public Object getVersion() {
+    public Long getVersion() {
         return version;
     }
 
