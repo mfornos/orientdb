@@ -1,9 +1,7 @@
 import org.junit.*;
 
 import com.orientechnologies.orient.core.db.graph.OGraphDatabase;
-import com.orientechnologies.orient.core.db.object.ODatabaseObject;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
-import com.orientechnologies.orient.core.id.ORID;
+import com.orientechnologies.orient.object.db.OObjectDatabaseTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
@@ -22,7 +20,7 @@ public class BasicTest extends UnitTest {
 
     @Test
     public void basic() {
-        ODatabaseObjectTx db = ODB.openObjectDB();
+        OObjectDatabaseTx db = ODB.openObjectDB();
         Item item = new Item();
         item.description = "Description";
         item.name = "Item578";
@@ -37,7 +35,7 @@ public class BasicTest extends UnitTest {
 
     @Test
     public void crudInheritance() {
-        ODatabaseObjectTx database = ODB.openObjectDB();
+        OObjectDatabaseTx database = ODB.openObjectDB();
 
         long startRecordNumber = database.countClusterElements("Company");
 

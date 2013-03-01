@@ -15,6 +15,8 @@ import javax.persistence.Id;
 import javax.persistence.Transient;
 import javax.persistence.Version;
 
+import com.orientechnologies.orient.object.db.OObjectDatabaseTx;
+import com.orientechnologies.orient.object.iterator.OObjectIteratorClass;
 import play.Logger;
 import play.db.Model;
 import play.db.Model.Factory;
@@ -23,10 +25,8 @@ import play.exceptions.UnexpectedException;
 
 import com.orientechnologies.orient.core.annotation.OId;
 import com.orientechnologies.orient.core.annotation.OVersion;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.iterator.OObjectIteratorMultiCluster;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
@@ -40,7 +40,7 @@ public class OModelLoader implements Factory {
 
     @Override
     public Long count(List<String> searchFields, String keywords, String where) {
-        ODatabaseObjectTx db = ODB.openObjectDB();
+        OObjectDatabaseTx db = ODB.openObjectDB();
         String q = "select count(*) from " + clazz.getSimpleName() + " ";
         List<Object> params = new ArrayList<Object>();
         if (keywords != null && !keywords.equals("")) {
@@ -67,7 +67,7 @@ public class OModelLoader implements Factory {
 
     @Override
     public void deleteAll() {
-        ODatabaseObjectTx db = ODB.openObjectDB();
+        OObjectDatabaseTx db = ODB.openObjectDB();
         db.command(new OCommandSQL("delete from " + clazz.getSimpleName())).execute();
     }
 
@@ -169,7 +169,7 @@ public class OModelLoader implements Factory {
 
                 @SuppressWarnings("unchecked")
                 public List<Object> list() {
-                    return toList((OObjectIteratorMultiCluster<Object>) ODB.openObjectDB().browseClass(field.getType()));
+                    return toList((OObjectIteratorClass<Object>) ODB.openObjectDB().browseClass(field.getType()));
                 }
             };
         }
@@ -183,7 +183,7 @@ public class OModelLoader implements Factory {
 
                     @SuppressWarnings("unchecked")
                     public List<Object> list() {
-                        return toList((OObjectIteratorMultiCluster<Object>) ODB.openObjectDB().browseClass(fieldType));
+                        return toList((OObjectIteratorClass<Object>) ODB.openObjectDB().browseClass(fieldType));
                     }
                 };
 
@@ -243,7 +243,7 @@ public class OModelLoader implements Factory {
         throw new UnexpectedException("Cannot get the object @Id for an object of type " + clazz);
     }
 
-    protected List<Object> toList(OObjectIteratorMultiCluster<Object> result) {
+    protected List<Object> toList(OObjectIteratorClass<Object> result) {
         List<Object> list = new ArrayList<Object>();
         for (Object obj : result) {
             list.add(obj);

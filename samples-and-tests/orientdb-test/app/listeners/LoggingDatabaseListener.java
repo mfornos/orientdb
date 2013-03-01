@@ -56,4 +56,8 @@ public class LoggingDatabaseListener implements ODatabaseListener {
         Logger.info("[LOG LISTENER] %s", msg);
     }
 
+    @Override
+    public boolean onCorruptionRepairDatabase(ODatabase oDatabase, String s, String s2) {
+        return false;
+    }
 }

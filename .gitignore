@@ -1,4 +1,3 @@
-
 /.classpath
 /.project
 /commands.pyc
@@ -11,3 +10,7 @@
 /samples-and-tests/orientdb-test/.project
 /samples-and-tests/orientdb-test/.settings
 /.settings
+/orientdb.iml
+/orientdb.iws
+/orientdb.ipr
+/out

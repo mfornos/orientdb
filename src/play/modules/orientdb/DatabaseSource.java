@@ -1,14 +1,14 @@
 package play.modules.orientdb;
 
+import com.orientechnologies.orient.object.db.OObjectDatabaseTx;
 import play.inject.BeanSource;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.graph.OGraphDatabase;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 
 public class DatabaseSource implements BeanSource {
     private final ODatabaseDocumentTx documentDB;
-    private final ODatabaseObjectTx objectDB;
+    private final OObjectDatabaseTx objectDB;
     private final OGraphDatabase graphDB;
 
     public DatabaseSource(int conf) {
@@ -20,7 +20,7 @@ public class DatabaseSource implements BeanSource {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getBeanOfType(Class<T> clazz) {
-        if (ODatabaseObjectTx.class.isAssignableFrom(clazz)) {
+        if (OObjectDatabaseTx.class.isAssignableFrom(clazz)) {
             return (T) objectDB;
         } else if (OGraphDatabase.class.isAssignableFrom(clazz)) {
             return (T) graphDB;
