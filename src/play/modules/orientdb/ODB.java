@@ -3,6 +3,8 @@ package play.modules.orientdb;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.orientechnologies.orient.object.db.OObjectDatabasePool;
+import com.orientechnologies.orient.object.db.OObjectDatabaseTx;
 import play.classloading.ApplicationClasses.ApplicationClass;
 import play.exceptions.UnexpectedException;
 
@@ -12,8 +14,6 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.graph.OGraphDatabase;
 import com.orientechnologies.orient.core.db.graph.OGraphDatabasePool;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectPool;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.hook.ORecordHook;
 import com.orientechnologies.orient.core.tx.OTransaction.TXTYPE;
 
@@ -21,12 +21,12 @@ public class ODB {
 
     public enum DBTYPE {
         DOCUMENT, OBJECT
-    };
+    }
 
     public static final List<ApplicationClass> listeners = new ArrayList<ApplicationClass>();
     public static final List<ApplicationClass> hooks = new ArrayList<ApplicationClass>();
 
-    static final ThreadLocal<ODatabaseObjectTx> localObjectTx = new ThreadLocal<ODatabaseObjectTx>();
+    static final ThreadLocal<OObjectDatabaseTx> localObjectTx = new ThreadLocal<OObjectDatabaseTx>();
     static final ThreadLocal<ODatabaseDocumentTx> localDocumentTx = new ThreadLocal<ODatabaseDocumentTx>();
     static final ThreadLocal<OGraphDatabase> localGraphTx = new ThreadLocal<OGraphDatabase>();
 
@@ -94,9 +94,9 @@ public class ODB {
         return localGraphTx.get();
     }
 
-    public static ODatabaseObjectTx openObjectDB() {
+    public static OObjectDatabaseTx openObjectDB() {
         if (!hasObjectTx()) {
-            ODatabaseObjectTx db = ODatabaseObjectPool.global()
+          OObjectDatabaseTx db = OObjectDatabasePool.global()
                     .acquire(ODBPlugin.url, ODBPlugin.user, ODBPlugin.passwd);
             localObjectTx.set(db);
             registerListeners(db);
@@ -142,7 +142,7 @@ public class ODB {
     }
 
     // XXX expensive operation, find a better solution
-    private static void registerHooks(ODatabaseObjectTx db) {
+    private static void registerHooks(OObjectDatabaseTx db) {
         for (ApplicationClass hook : hooks) {
             db.registerHook((ORecordHook) newInstance(hook));
         }

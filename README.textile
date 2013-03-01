@@ -60,7 +60,7 @@ p. And use that entity on the controller:
 bc.. public class MyController extends Controller {
 
     public static void index() {
-        OObjectIteratorMultiCluster<Item> items = Item.all();
+        OObjectIteratorClass<Item> items = Item.all();
         render(items);
     }
 
