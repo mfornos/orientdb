@@ -1,7 +1,27 @@
-/.classpath
-/.project
-/commands.pyc
-/bin
+# Ignore all dotfiles...
+.*
+# except for .gitignore
+!.gitignore
+
+db
+eclipse
+bin
+lib
+out
+dist
+log
+logs
+modules
+target
+tmp
+test-result
+server.pid
+*.iml
+*.eml
+*.iws
+*.ipr
+commands.pyc
+
 /samples-and-tests/orientdb-test/eclipse
 /samples-and-tests/orientdb-test/modules
 /samples-and-tests/orientdb-test/test-result
@@ -9,8 +29,4 @@
 /samples-and-tests/orientdb-test/.classpath
 /samples-and-tests/orientdb-test/.project
 /samples-and-tests/orientdb-test/.settings
-/.settings
-/orientdb.iml
-/orientdb.iws
-/orientdb.ipr
-/out
+
